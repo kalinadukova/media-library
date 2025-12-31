@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  assets     Asset[]  @relation("UserAssets")
+  shares     Share[]  @relation("UserShares")
+
+  @@map("users")
+}
+
+model Asset {
+  id        String     @id @default(cuid())
+  filename  String
+  mimeType  String     @map("mime_type")
+  size      Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  userId    String     @map("user_id")
+
+  user      User       @relation("UserAssets", fields: [userId], references: [id], onDelete: Cascade)
+  assetTags AssetTag[] @relation("AssetTags")
+  shares    Share[]    @relation("AssetShares")
+
+  @@index([userId])
+  @@map("assets")
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now()) @map("created_at")
+  assetTags AssetTag[] @relation("AssetTags")
+
+  @@map("tags")
+}
+
+model AssetTag {
+  assetId String @map("asset_id")
+  tagId   String @map("tag_id")
+
+  asset Asset @relation("AssetTags", fields: [assetId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation("AssetTags", fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, tagId])
+  @@index([tagId])
+  @@map("asset_tags")
+}
+
+model Share {
+  id           String   @id @default(cuid())
+  presignedUrl String   @unique @map("presigned_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+  assetId      String   @map("asset_id")
+  userId       String   @map("user_id")
+
+  asset Asset @relation("AssetShares", fields: [assetId], references: [id], onDelete: Cascade)
+  user  User  @relation("UserShares", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([userId])
+  @@map("shares")
+}
+
