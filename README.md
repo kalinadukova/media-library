@@ -74,6 +74,7 @@ Requests without a valid token will be rejected with `401 Unauthorized`.
 ```
 
 **Response**
+
 ```json
 {
   "id": "uuid",
@@ -93,6 +94,7 @@ Requests without a valid token will be rejected with `401 Unauthorized`.
 ### `POST /api/v1/users/login`
 
 **Request**
+
 ```json
 {
   "email": "user@example.com",
@@ -101,12 +103,12 @@ Requests without a valid token will be rejected with `401 Unauthorized`.
 ```
 
 **Response**
+
 ```json
 {
   "token": "string"
 }
 ```
-
 
 | Status Code | Meaning                                                           |   
 |-------------|-------------------------------------------------------------------|
@@ -127,24 +129,46 @@ Requests without a valid token will be rejected with `401 Unauthorized`.
 - `url` is the Cloudinary delivery URL
 - `asset_tags` are AI-generated during upload
 
+**Query Params**
+
+| Name  | Type   | Required | Default | Description                        |
+|-------|--------|----------|---------|------------------------------------|
+| page  | Number | No       | 1       | Page number for pagination result  |
+| limit | Number | No       | 20      | Number of assets returned per page |
+
+**Example**
+
+```
+GET /api/v1/assets?page=2&limit=10
+```
+
 **Response**
 
 ```json
-[
-  {
-    "id": "uuid",
-    "filename": "uploads/uploaded-file-key",
-    "mime_type": "image/png",
-    "size": 123456,
-    "created_at": "2024-01-01T12:00:00.000Z",
-    "asset_tags": [
-      "cat",
-      "outdoor",
-      "animal"
-    ],
-    "url": "presigned-download-url"
+{
+  "result": [
+    {
+      "id": "uuid",
+      "filename": "uploads/uploaded-file-key",
+      "mime_type": "image/png",
+      "size": 123456,
+      "created_at": "2024-01-01T12:00:00.000Z",
+      "asset_tags": [
+        "cat",
+        "outdoor",
+        "animal"
+      ],
+      "url": "presigned-download-url"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 57,
+    "totalPages": 3
   }
-]
+}
+
 ```
 
 | Status Code | Meaning                     |
