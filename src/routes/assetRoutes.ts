@@ -16,20 +16,29 @@ router.get("/", async (request: JWTRequest, response: Response, next: NextFuncti
     try {
         const userId = (request.auth as any)?.sub_id;
 
-        const assets = await prisma.asset.findMany({
-            where: {userId},
-            orderBy: {createdAt: "desc"},
-            select: {
-                id: true,
-                filename: true,
-                mimeType: true,
-                size: true,
-                createdAt: true,
-                assetTags: {
-                    select: {tag: {select: {id: true, name: true}}},
+        const page = Math.max(Number(request.query.page) || 1, 1);
+        const limit = Math.min(Number(request.query.limit) || 20, 100);
+        const offset = (page - 1) * limit;
+
+        const [assets, total] = await Promise.all([
+            prisma.asset.findMany({
+                where: {userId},
+                orderBy: {createdAt: "desc"},
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    filename: true,
+                    mimeType: true,
+                    size: true,
+                    createdAt: true,
+                    assetTags: {select: {tag: {select: {id: true, name: true}}}},
                 },
-            },
-        });
+            }),
+            prisma.asset.count({
+                where: {userId},
+            }),
+        ]);
 
         const result = assets.map((a) => {
             const tags = a.assetTags.map((t) => t.tag.name);
@@ -46,7 +55,15 @@ router.get("/", async (request: JWTRequest, response: Response, next: NextFuncti
             };
         });
 
-        return response.status(200).json(result);
+        return response.status(200).json({
+            result,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
     } catch (err) {
         return next(err);
     }
@@ -102,34 +119,17 @@ router.post("/", upload.single("file"), async (request: JWTRequest, response: Re
                 });
             }
 
-            const assetWithTags = await tx.asset.findUnique({
-                where: {id: asset.id},
-                select: {
-                    filename: true,
-                    mimeType: true,
-                    size: true,
-                    createdAt: true,
-                    assetTags: {
-                        select: {
-                            tag: {select: {name: true}}
-                        },
-                    },
-                },
-            });
-
-            return assetWithTags!;
+            return asset;
         });
 
-        if (!created) return response.status(500).json({ error: "Unexpected error happening while trying to upload file. Please try again later." });
-
-        const asset_tags = created.assetTags.map((at) => at.tag.name);
+        if (!created) return response.status(500).json({error: "Unexpected error happening while trying to upload file. Please try again later."});
 
         return response.status(201).json({
             filename: created.filename,
             mime_type: created.mimeType,
             size: created.size,
             created_at: created.createdAt,
-            asset_tags,
+            asset_tags: tags
         });
     } catch (error: any) {
         next(error);
