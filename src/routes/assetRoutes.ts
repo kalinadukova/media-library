@@ -12,19 +12,67 @@ router.use(authenticationMiddleware);
 
 const upload = multer({storage: multer.memoryStorage()});
 
+function getQueryParams(request: JWTRequest) {
+    const userId = (request.auth as any)?.sub_id;
+
+    const query = request.query;
+
+    const tags = typeof query.tags === "string"
+        ? query.tags.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+    const mimeType = typeof query.mime_type === "string"
+        ? query.mime_type.trim()
+        : "";
+
+    let createdAt: { gte: Date; lt: Date } | undefined;
+
+    if (typeof query.created_at === "string") {
+        const date = new Date(query.created_at.trim());
+
+        if (!Number.isNaN(date.getTime())) {
+            const start = new Date(date);
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(start);
+            end.setDate(end.getDate() + 1);
+
+            createdAt = {gte: start, lt: end};
+        }
+    }
+
+    return {
+        userId,
+        ...(mimeType ? {mimeType} : {}),
+        ...(createdAt ? {createdAt} : {}),
+        ...(tags.length
+                ? {
+                    AND: tags.map((name) => ({
+                        assetTags: {
+                            some: {
+                                tag: {name},
+                            },
+                        },
+                    })),
+                }
+                : {}
+        ),
+    };
+}
+
 router.get("/", async (request: JWTRequest, response: Response, next: NextFunction) => {
     try {
-        const userId = (request.auth as any)?.sub_id;
-
         const page = Math.max(Number(request.query.page) || 1, 1);
         const limit = Math.min(Number(request.query.limit) || 20, 100);
         const offset = (page - 1) * limit;
 
+        const whereClause = getQueryParams(request);
+
         const [assets, total] = await Promise.all([
             prisma.asset.findMany({
-                where: {userId},
+                where: whereClause,
                 orderBy: {createdAt: "desc"},
-                skip,
+                skip: offset,
                 take: limit,
                 select: {
                     id: true,
@@ -36,7 +84,7 @@ router.get("/", async (request: JWTRequest, response: Response, next: NextFuncti
                 },
             }),
             prisma.asset.count({
-                where: {userId},
+                where: whereClause,
             }),
         ]);
 
