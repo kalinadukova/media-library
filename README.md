@@ -131,15 +131,20 @@ Requests without a valid token will be rejected with `401 Unauthorized`.
 
 **Query Params**
 
-| Name  | Type   | Required | Default | Description                        |
-|-------|--------|----------|---------|------------------------------------|
-| page  | Number | No       | 1       | Page number for pagination result  |
-| limit | Number | No       | 20      | Number of assets returned per page |
+| Name       | Type   | Required | Default | Description                                                                                                                                   |
+|------------|--------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| page       | Number | No       | 1       | Page number for pagination result                                                                                                             |
+| limit      | Number | No       | 20      | Number of assets returned per page                                                                                                            |
+| tags       | String | No       | []      | Filter assets by tags. Multiple tags must be provided as a comma-separated list (e.g. dog,carnivores). Assets must contain all provided tags. |
+| mime_type  | String | No       | ""      | Filter by an `exact` MIME type (e.g. image/png). Only one value is supported.                                                                 |
+| created_at | String | No       | ""      | Filter by an `exact` creation date. An ISO date string is expected (YYYY-MM-DD). The filter matches the entire day.                           |
 
 **Example**
 
 ```
 GET /api/v1/assets?page=2&limit=10
+GET /api/v1/assets?tags=carnivore,dogs&created_at=2026-01-04
+GET /api/v1/assets?limit=25&mime_type=image/jpeg
 ```
 
 **Response**
@@ -168,8 +173,14 @@ GET /api/v1/assets?page=2&limit=10
     "totalPages": 3
   }
 }
-
 ```
+
+### Notes
+
+- The `limit` query parameter is capped at **100**; values greater than `100` are automatically clamped.
+- Tag filtering uses AND logic: an asset must contain all specified tags.
+- The `created_at` filtering matches assets created between 00:00:00 and 23:59:59 of the given date.
+- Pagination metadata always reflects the applied filters.
 
 | Status Code | Meaning                     |
 |-------------|-----------------------------|
