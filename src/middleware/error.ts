@@ -1,6 +1,8 @@
 import type {NextFunction, Request, Response} from "express";
 
-export function errorMiddleware(err: any, request: Request, response: Response, next: NextFunction) {
+export function errorMiddleware(err: any, _request: Request, response: Response, _response: NextFunction) {
+    console.log('Error middleware: ', err)
+
     if (err.name === "UnauthorizedError") {
         return response.status(401).json({
             error: "Unauthorized",
@@ -14,8 +16,6 @@ export function errorMiddleware(err: any, request: Request, response: Response, 
             message: err.message,
         });
     }
-
-    console.error(err);
 
     return response.status(500).json({
         error: "Internal Server Error",
