@@ -122,6 +122,12 @@ router.post("/", upload.single("file"), async (request: JWTRequest, response: Re
         const file = request.file;
         if (!file) return response.status(400).json({error: "No file uploaded"});
 
+        const MIME_TYPE = file.mimetype;
+
+        if (MIME_TYPE !== 'image/png' && MIME_TYPE !== 'image/jpeg' && MIME_TYPE !== 'image/jpg') {
+            return response.status(400).json({error: "Invalid file mimetype"});
+        }
+
         const userId = (request.auth as any)?.sub_id;
 
         const uuid = crypto.randomUUID();
